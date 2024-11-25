@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import json
 from datetime import datetime, timedelta
 
 from ..utils import sample_process
@@ -7,7 +8,7 @@ from ..utils import sample_process
 
 def get_failure_probability(machine_number, model, a, b, df1, df2, used_categories):
     """
-    Calculate the probability of failure for a specific machine within a given time interval (a, b).
+    Calculate the probability of failure for a specific machine within a given time interval (a, b) using the Cox Proportional Hazards model.
 
     Args:
     - machine_number (str): The identifier of the machine.
@@ -19,7 +20,8 @@ def get_failure_probability(machine_number, model, a, b, df1, df2, used_categori
     - used_categories (dict): Categories used during model training.
 
     Returns:
-    - dict: {
+    - str: A JSON string representing the result.
+    {
         "machine_name": "str: The machine's identifier.",
         "interval": "tuple: The time interval (a, b).",
         "failure_probability": "float: The calculated probability of failure within the interval."
@@ -66,17 +68,17 @@ def get_failure_probability(machine_number, model, a, b, df1, df2, used_categori
         # Calculate failure probability
         probability = survival_at_a - survival_at_b
 
-        return {
+        return json.dumps({
             "machine_number": machine_number,
             "interval": (a, b),
             "failure_probability": probability
-        }
+        }, ensure_ascii=False)
     except Exception as e:
-        return {"error": str(e)}
+        return json.dumps({"error": str(e)})
 
 def recommend_maintenance(machine_number, model, threshold, df1, df2, used_categories):
     """
-    Recommend the optimal maintenance time for a machine based on a survival threshold.
+    Recommend the optimal maintenance time for a machine based on a survival threshold using the Cox Proportional Hazards model.
 
     Args:
     - machine_number (str): The identifier of the machine.
@@ -87,14 +89,16 @@ def recommend_maintenance(machine_number, model, threshold, df1, df2, used_categ
     - used_categories (dict): Categories used during training.
 
     Returns:
-    - dict: {
+    - str: A JSON string representing the result.
+    {
         "machine_name": "str: The machine's identifier.",
         "threshold": "float: The survival probability threshold.",
         "recommended_time_date": The recommended maintenance date in 'd-m-y' format, or None if beyond threshold.",
         "message": "str: Message indicating if no optimal time was found."
     }
 
-    E.g: {
+    E.g: 
+    {
         'machine_number': 'VIM 0159',
         'threshold': 0.5,
         'recommended_time_date': '17-12-2024'
@@ -126,26 +130,26 @@ def recommend_maintenance(machine_number, model, threshold, df1, df2, used_categ
 
 
         if pd.isna(recommended_time):
-            return {
+            return json.dumps({
                 "machine_number": machine_number,
                 "threshold": threshold,
                 "recommended_time_date": None,
                 "message": "The machine is expected to survive beyond the threshold."
-            }
+            }, ensure_ascii=False)
 
-        return {
+        return json.dumps({
             "machine_number": machine_number,
             "threshold": threshold,
             "recommended_time_date": recommended_time_date
-        }
+        }, ensure_ascii=False)
     except Exception as e:
-        return {"error": str(e)}
+        return json.dumps({"error": str(e)})
     
 from datetime import datetime
 
 def risk_ranking(machine_list, date, model, df1, df2, used_categories):
     """
-    Rank machines based on their survival probability at a specific date.
+    Rank machines based on their survival probability at a specific date  using the Cox Proportional Hazards model.
 
     Args:
     - machine_list (list): List of machine identifiers.
@@ -156,11 +160,13 @@ def risk_ranking(machine_list, date, model, df1, df2, used_categories):
     - used_categories (dict): Categories used during training.
 
     Returns:
-    - dict: {
+    - str: A JSON string representing the result.
+    {
         "rankings": "list[dict]: List of machine rankings with survival probabilities."
     }
 
-    E.g: {
+    E.g: 
+    {
     'rankings': [{'machine_number': 'VSC 0038', 'survival_probability': 0.5179718727124583},
                 {'machine_number': 'VIM 0159', 'survival_probability': 0.6198406826569756},
                 {'machine_number': 'VMI 0082', 'survival_probability': 0.6475411566398768}]
@@ -199,13 +205,13 @@ def risk_ranking(machine_list, date, model, df1, df2, used_categories):
         rankings = sorted(rankings, key=lambda x: x["survival_probability"])
 
         # Return rankings as a dictionary
-        return {"rankings": rankings}
+        return json.dumps({"rankings": rankings}, ensure_ascii=False)
     except Exception as e:
-        return {"error": str(e)}
+        return json.dumps({"error": str(e)})
 
 def time_to_failure(machine_number, model, df1, df2, used_categories):
     """
-    Estimate the expected failure date for a machine.
+    Estimate the expected failure date for a machine  using the Cox Proportional Hazards model.
 
     Args:
     - machine_number (str): The identifier of the machine.
@@ -215,12 +221,14 @@ def time_to_failure(machine_number, model, df1, df2, used_categories):
     - used_categories (dict): Categories used during training.
 
     Returns:
-    - dict: {
+    - str: A JSON string representing the result.
+    {
         "machine_number": "str: The machine's identifier.",
         "expected_failure_date": "str: The estimated failure date in 'd-m-y' format."
     }
 
-    E.g: {
+    E.g: 
+    {
         'machine_number': 'VIM 0159', 
         'expected_failure_date': '06-11-2024'
     }
@@ -255,17 +263,17 @@ def time_to_failure(machine_number, model, df1, df2, used_categories):
         # Calculate the expected failure date
         expected_failure_date = (baseline_date + timedelta(days=int(expected_time_to_failure))).strftime("%d-%m-%Y")
 
-        return {
+        return json.dumps({
             "machine_number": machine_number,
             "expected_failure_date": expected_failure_date
-        }
+        }, ensure_ascii=False)
     except Exception as e:
-        return {"error": str(e)}
+        return json.dumps({"error": str(e)})
 
 
 def covariate_effects_on_machine(machine_number, model, df1, df2, used_categories):
     """
-    Analyze the impact of each covariate on a machine's risk of failure with enhanced interpretability.
+    Analyze the impact of each covariate on a machine's risk of failure with enhanced interpretability using the Cox Proportional Hazards model.
 
     Args:
     - machine_number (str): The identifier of the machine.
@@ -275,9 +283,10 @@ def covariate_effects_on_machine(machine_number, model, df1, df2, used_categorie
     - used_categories (dict): Categories used during training.
 
     Returns:
-    - dict: {
+    - str: A JSON string representing the result.
+    {
         "machine_number": "str: The machine's identifier.",
-        "covariate_effects": "dict: A dictionary of covariate impacts including log hazard ratio, hazard ratio, percent impact, and description."
+        "covariate_effects": "dict: A dictionary of covariate impacts and description."
     }
 
     E.g: 
@@ -286,34 +295,18 @@ def covariate_effects_on_machine(machine_number, model, df1, df2, used_categorie
         'covariate_effects': {
             'Thời gian dừng máy (giờ)': {
                 'value': 2.0,
-                'log_hazard_ratio': -0.15429401934522063,
-                'hazard_ratio': 0.8570200035039904,
-                'percent_impact': -14.297999649600957,
-                'impact': 'decreases risk',
                 'description': "Covariate 'Thời gian dừng máy (giờ)' with value '2.0' decreases failure risk by 14.30%."
             },
             'Số người thực hiện': {
                 'value': 1.0,
-                'log_hazard_ratio': -0.02371048353206723,
-                'hazard_ratio': 0.9765684014682698,
-                'percent_impact': -2.343159853173016,
-                'impact': 'decreases risk',
                 'description': "Covariate 'Số người thực hiện' with value '1.0' decreases failure risk by 2.34%."
             },
             'Điện áp tiêu thụ (V)': {
                 'value': 220.0,
-                'log_hazard_ratio': -0.003343589835522314,
-                'hazard_ratio': 0.9966619937361804,
-                'percent_impact': -0.3338006263819637,
-                'impact': 'decreases risk',
                 'description': "Covariate 'Điện áp tiêu thụ (V)' with value '220.0' decreases failure risk by 0.33%."
             },
             'Tuổi thọ thiết bị': {
                 'value': 1249.0,
-                'log_hazard_ratio': 0.0020601576063648897,
-                'hazard_ratio': 1.0020622811891011,
-                'percent_impact': 0.20622811891011228,
-                'impact': 'increases risk',
                 'description': "Covariate 'Tuổi thọ thiết bị' with value '1249.0' increases failure risk by 0.21%."
             },
             .......
@@ -336,18 +329,14 @@ def covariate_effects_on_machine(machine_number, model, df1, df2, used_categorie
 
                 effects[covariate] = {
                     "value": value,
-                    "log_hazard_ratio": effect,
-                    "hazard_ratio": hazard_ratio,
-                    "percent_impact": percent_impact,
-                    "impact": "increases risk" if effect > 0 else "decreases risk",
                     "description": f"Covariate '{covariate}' with value '{value}' "
                                    f"{'increases' if effect > 0 else 'decreases'} "
                                    f"failure risk by {abs(percent_impact):.2f}%."
                 }
 
-        return {
+        return json.dumps({
             "machine_number": machine_number,
             "covariate_effects": effects
-        }
+        }, ensure_ascii=False)
     except Exception as e:
-        return {"error": str(e)}
+        return json.dumps({"error": str(e)})
